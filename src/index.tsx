@@ -15,7 +15,7 @@ export type TextareaProps = {
 	// Min characters for search
 	minChar: number
 
-	// Character of search, example #
+	// Character of search, example /
 	char: string
 
 	// Max lenght of items in suggest
@@ -25,7 +25,7 @@ export type TextareaProps = {
 	ssr: boolean
 
 	// Behavior in key navegations infinite || lock
-	mode: string
+	mode: 'infinite' | 'lock'
 
 	// Adds the character when is selected
 	addChar: boolean
@@ -102,7 +102,13 @@ const createRegExp = (character: string) => {
 	return new RegExp(`([${character}])(?:(?!\\1)[^\\s])*$`)
 }
 
-const TextareaComponent = (props: TextareaProps) => {
+const TextareaComponent = ({
+	minChar = 2,
+	char = '/',
+	ssr = false,
+	mode = 'infinite',
+	...props
+}: TextareaProps) => {
 	const [state, setStateBase] = useState<{
 		top: number
 		left: number
@@ -133,7 +139,7 @@ const TextareaComponent = (props: TextareaProps) => {
 	}
 
 	useEffect(() => {
-		if (!props.ssr) {
+		if (!ssr) {
 			window.addEventListener('keydown', (ev: any) => keyDown(ev))
 		}
 
@@ -142,9 +148,7 @@ const TextareaComponent = (props: TextareaProps) => {
 		}
 	}, [state])
 
-	const pattern = createRegExp(props.char)
-	// const [pattern, setPattern] = useState(createRegExp(props.char))
-
+	const pattern = createRegExp(char)
 	const textareaRef = useRef<HTMLTextAreaElement>(null)
 
 	const keyDown = (ev: KeyboardEvent) => {
@@ -161,14 +165,14 @@ const TextareaComponent = (props: TextareaProps) => {
 	}
 
 	const up = () => {
-		if (props.mode === 'lock') {
+		if (mode === 'lock') {
 			const { activeIndex } = state
 			if (activeIndex - 1 >= 0) {
 				setState({ activeIndex: activeIndex - 1 })
 			}
 		}
 
-		if (props.mode === 'infinite') {
+		if (mode === 'infinite') {
 			const { suggests, activeIndex } = state
 			if (activeIndex - 1 >= 0) {
 				setState({ activeIndex: activeIndex - 1 })
@@ -179,7 +183,6 @@ const TextareaComponent = (props: TextareaProps) => {
 	}
 
 	const down = () => {
-		const { mode } = props
 		const { suggests, activeIndex } = state
 
 		if (mode === 'lock') {
@@ -206,7 +209,7 @@ const TextareaComponent = (props: TextareaProps) => {
 		const match = pattern.exec(value.slice(0, selectionEnd))
 		// console.log('MATHC', match, value)
 
-		if (match && match[0] && match[0].length >= props.minChar) {
+		if (match && match[0] && match[0].length >= minChar) {
 			setState({ match: match[0], selectionEnd })
 			// debugger
 			getSuggest(match[0])
@@ -217,7 +220,7 @@ const TextareaComponent = (props: TextareaProps) => {
 
 	const onSelect = () => {
 		const { suggests, activeIndex, selectionEnd, match, value } = state
-		const { addChar, char } = props
+		const { addChar } = props
 		const select = addChar
 			? char + suggests[activeIndex]
 			: suggests[activeIndex]
@@ -251,7 +254,7 @@ const TextareaComponent = (props: TextareaProps) => {
 
 	const getSuggest = (match: string) => {
 		// debugger
-		const { list, char, maxSuggest } = props
+		const { list, maxSuggest } = props
 		const tok = match.replace(char, '')
 		let suggests = list.filter((sug: any) => sug.indexOf(tok) !== -1)
 		// Limit
@@ -267,7 +270,7 @@ const TextareaComponent = (props: TextareaProps) => {
 	}
 
 	const { top, left, value, match, suggests, isOpen, activeIndex } = state
-	const { char, showCharInList, spellcheck } = props
+	const {  showCharInList, spellcheck } = props
 
 	console.log(`
   match: ${match}
@@ -283,6 +286,7 @@ const TextareaComponent = (props: TextareaProps) => {
 				isOpen={match!! && isOpen}
 				activeIndex={activeIndex}
 				textareaEl={textareaRef}
+				char={char}
 				{...props}
 			/>
 			<textarea
@@ -296,7 +300,6 @@ const TextareaComponent = (props: TextareaProps) => {
 	)
 }
 
-TextareaComponent.defaultProps = defaultProps
-TextareaComponent.name = 'Textarea'
+// TextareaComponent.defaultProps = defaultProps
 
-export default { TextareaComponent }
+export default TextareaComponent
